@@ -1,0 +1,6 @@
+#Sat Nov 05 15:46:10 EDT 2016
+useAnnotationsPrefPage=true
+eclipse.preferences.version=1
+matchingBracketsColor=0,255,128
+hoverModifiers=combinationHover|true|0;problemHover|false|0;documentationHover|false|0;annotationHover|true|Shift;
+useQuickDiffPrefPage=true

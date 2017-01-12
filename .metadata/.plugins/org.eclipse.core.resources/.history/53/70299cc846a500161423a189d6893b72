@@ -1,0 +1,236 @@
+package homework;
+
+
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.Random;
+
+
+public class ConcurrentSearcherList<T> extends Thread{
+
+	
+
+	private static class Node<T>{
+		final T item;
+		Node<T> next;
+		
+		Node(T item, Node<T> next){
+			this.item = item;
+			this.next = next;
+		}
+	}
+	
+
+	private Node<T> first; 
+	static int i;
+	 
+	volatile static boolean flag;
+	static ConcurrentSearcherList<Integer> ob= new ConcurrentSearcherList<Integer>();
+	static ConcurrentSearcherList<Integer> ob1= new ConcurrentSearcherList<Integer>();
+	private  volatile int ni=0;
+	private volatile int nd=0;
+	private  volatile int ns=0;
+	 
+	volatile int c=0;
+	static Thread t1,t2,t3,cur;
+	volatile static Random ran=new Random();
+	private final ReentrantLock lock = new ReentrantLock();
+    
+    
+	
+	
+
+	
+	public ConcurrentSearcherList() {
+		first = null;		
+		
+	}
+	
+	/**
+	 * Inserts the given item into the list.  
+	 * 
+	 * Precondition:  item != null
+	 * 
+	 * @param item
+	 * @throws InterruptedException
+	 */
+	public void insert(T item) throws InterruptedException{
+		assert item != null: "Error in ConcurrentSearcherList insert:  Attempt to insert null";
+		start_insert();
+		try{
+			first = new Node<T>(item, first); //System.out.println("\nItem created: "+ item);
+		}
+		finally{
+			end_insert();
+		}
+	}
+	
+	/**
+	 * Determines whether or not the given item is in the list
+	 * 
+	 * Precondition:  item != null
+	 * 
+	 * @param item
+	 * @return  true if item is in the list, false otherwise.
+	 * @throws InterruptedException
+	 */
+	public boolean search(T item) throws InterruptedException{
+		assert item != null: "Error in ConcurrentSearcherList insert:  Attempt to search for null";
+		start_search();
+		try{ System.out.println("");
+			for(Node<T> curr = first;  curr != null ; curr = curr.next){
+				System.out.print(curr.item+ " ");
+				if (item.equals(curr.item)) {
+					System.out.println("\nItem found:"+item );
+					return true;}
+			}
+			System.out.println("\nItem not found:"+item);	
+			return false;
+		}
+		finally{
+			end_search();
+		}
+	}
+	
+	/**
+	 * Removes the given item from the list if it exists.  Otherwise the list is not modified.
+	 * The return value indicates whether or not the item was removed.
+	 * 
+	 * Precondition:  item != null.
+	 * 
+	 * @param item
+	 * @return  whether or not item was removed from the list.
+	 * @throws InterruptedException
+	 */
+	public boolean remove(T item) throws InterruptedException{
+		assert item != null: "Error in ConcurrentSearcherList insert:  Attempt to remove null";
+		start_remove();
+		try{
+			if(first == null) return false;
+			if (item.equals(first.item)){first = first.next; return true;}
+			for(Node<T> curr = first;  curr.next != null ; curr = curr.next){
+				if (item.equals(curr.next.item)) {
+					curr.next = curr.next.next;
+					 System.out.println("\nItem removed:"+item ); 
+					 return true;
+				}
+			}
+			System.out.println("\nItem not removed:"+item);	
+
+			return false;			
+		}
+		finally{
+			end_remove();
+		}
+	}
+	@Override
+	 public void run() 
+{
+
+		
+		lock.lock();
+		try
+		{  cur=Thread.currentThread();
+			for(i=1;i<=2;i++)
+			{
+				c++;
+			
+			ob.insert(c);
+			ob.insert(++c);
+			if(!ob.remove(ran.nextInt(c)))
+				System.out.println("\nItem not removed:"+ " "+ cur.getName());	
+			ob.insert(++c);
+			if(!ob.search(ran.nextInt(c)))
+			//	System.out.println("\nItem found:" );
+			//else
+				System.out.println("\nItem not found:"+ " " + cur.getName());	
+	 
+			if(!ob.remove(ran.nextInt(c)))
+			//	System.out.println("\nItem removed:");
+			//else
+				System.out.println("\nItem not removed:"+ " "+ cur.getName());	
+			}
+	 
+		
+		}
+		
+		catch (Exception e)
+		{
+			System.out.println(" ");
+		}
+		finally
+		{
+			lock.unlock();
+		}
+}
+	
+	public static void main(String args[]) throws InterruptedException
+	{
+		long startTime = System.nanoTime();
+		
+		 t1=new Thread(ob,"Thread1");
+		
+		 t2=new Thread(ob1,"Thread2");
+		 t3=new Thread(ob,"Thread3");
+		t1.start();
+		t2.start();
+		t3.start();
+		t1.join();
+		t2.join();
+		t3.join();	
+		long endTime = System.nanoTime();
+		System.out.println("Took "+(endTime - startTime) + " ns"); 
+	}
+	
+	
+	
+	private synchronized void start_insert() throws InterruptedException{		
+		while(nd != 0 || ni != 0) {
+			wait();
+		}
+		ni++;
+	}
+
+	private synchronized void end_insert()throws InterruptedException{
+		while(ni <= 0){
+			wait();
+		}
+		ni--;
+		if(ni == 0) {
+			notifyAll();
+		}
+	}
+	
+	private synchronized void start_search() throws InterruptedException{
+		while(nd != 0) {
+			wait();
+		}
+		ns++;
+	}
+	
+	private synchronized void end_search(){
+		while(ns <= 0) {
+			wait();
+		}
+		ns--;
+		if(ns == 0) {
+			notifyAll();
+		}
+	}
+	
+	private synchronized void start_remove() throws InterruptedException{
+		while(nd != 0 || ni != 0 || ns != 0){
+			wait();
+		}
+		nd++;
+	}
+	
+	private synchronized void end_remove() {
+		while(nd <= 0) {
+			wait();
+		}
+		nd--;
+		if(nd == 0) {
+			notifyAll();
+		}
+	}
+}
